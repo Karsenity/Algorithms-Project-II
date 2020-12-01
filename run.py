@@ -1,27 +1,25 @@
-import time
+from src.Data_Initialization import *
+from src.FindPaths import *
 
-from src.GetPaths import *
-import networkx as nx
-import numpy as np
-from pprint import pprint
-import matplotlib.pyplot as plt
+routes, planes, airports, airlines = init_all()
+ny, sf = get_airports(airports, "New York"), get_airports(airports, "San Francisco")
+
+#### Problem 1 #####
+good_routes = get_routes_(routes, ny, sf)
+print("Max flow for network is: ",find_max_flow(good_routes, ny, sf, planes, draw=False))
 
 
-routes = init_routes()
-airports = init_airports()
-planes = init_planes()
-airlines = init_airlines()
 
-ny, sf = get_airports(airports)
-good_routes = get_routes(routes, ny, sf)
+#### PROBLEM 2 #####
+carrier_routes = divide_by_carrier(good_routes)
+flows = carrier_routes_to_network(carrier_routes, ny, sf, planes)
 
-matrix, sink_index = create_graph(good_routes, ny, sf, planes)
+# Get the ID of the carrier who can carry the most people
+v = list(flows.values())
+k = list(flows.keys())
+max_ID = k[v.index(max(v))]
+# Turn ID into name of the carrier
+max_airline = [i[1] for i in airlines if i[0]==max_ID][0]
+print("{} has the highest flow of all carriers, able to move {} people from NY to SF".format(max_airline, flows[max_ID]))
 
-##### PROBLEM 1 ########
-# print(sink_index)
-#graph = nx.convert_matrix.from_numpy_matrix(np.matrix(matrix), create_using=nx.DiGraph)
-#pprint(nx.maximum_flow(graph, len(matrix)-1, sink_index, capacity='weight'))
-##### PROBLEM 2 ########
-#carrier_routes = divide_by_carrier(good_routes)
-#carrier_routes_to_network(carrier_routes)
 

@@ -2,7 +2,8 @@ import networkx as nx
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from src.GetPaths import create_graph
+
+from src.Data_Initialization import init_plane_dat
 
 """
 Get the airports corresponding to a given city
@@ -29,14 +30,15 @@ def get_routes_(routes, ny, sf):
     # get all routes to SF that are one-hop from NY
     inter_route_ids = prospective_routes.loc[~prospective_routes["Destination_Airport_ID"].isin(sf), "Destination_Airport_ID"].tolist()
     inter_routes = routes.loc[routes["Source_Airport_ID"].isin(inter_route_ids)]
+    inter_routes = inter_routes.loc[inter_routes["Stops"] == '0']
     inter_routes = inter_routes.loc[inter_routes["Destination_Airport_ID"].isin(sf)]
 
     # All routes from NY to intermediate airports
     ny_inter = prospective_routes.loc[prospective_routes["Destination_Airport_ID"].isin(inter_routes["Source_Airport_ID"].tolist())]
+    ny_inter = ny_inter.loc[ny_inter["Stops"] == '0']
 
-    #get only routes with no stops
+# Only get routes involving an intermediate that have no stops
     good_routes = pd.concat([straight_routes, ny_inter, inter_routes])
-    good_routes = good_routes.loc[good_routes["Stops"] == '0']
 
     return good_routes
 
@@ -47,7 +49,7 @@ NY and SF airports
 """
 def create_adj_matrix(routes, plane_cap, ny, sf, draw=False):
     # Find unique vertices in graph
-    unique_airports = list(set(routes["Source_Airport_ID"].values.tolist() + routes["Destination_Airport_ID"].values.tolist()))
+    unique_airports = list(set(routes["Source_Airport_ID"].values.tolist() + routes["Destination_Airport_ID"].values.tolist() + sf))
     routes = assign_capacities(routes, plane_cap)
 
     # Initialize Matrix
@@ -67,12 +69,6 @@ def create_adj_matrix(routes, plane_cap, ny, sf, draw=False):
     for id in ny:
         if id in unique_airports:
             v_index = unique_airports.index(id)
-            edges = [(i,e) for i,e in enumerate(matrix[v_index]) if e is not 0]
-            if len(edges) > 1 or matrix[v_index][sink_index] == 0:
-                for edge in edges:
-                    if edge[0] != sink_index:
-                        matrix[v_index][edge[0]] = 0
-                        matrix[src_index][edge[0]] += edge[1]
             matrix[src_index][v_index] = INF
 
     if draw==True:
@@ -89,14 +85,13 @@ def divide_by_carrier(good_routes):
     carrier_routes = {id:good_routes.loc[good_routes["Airline_ID"] == id] for id in airline_ids}
     return carrier_routes
 
-#TODO Fix the default back to 0
 """
 Finds the maximum capacity of a given route
 :param: pandas row"""
 def find_route_capacity(route, plane_cap):
     plane_codes = route.Equipment
     capacities = plane_cap.loc[plane_cap["Code3"].isin(plane_codes), "Capacity"].tolist()
-    return max([int(i) for i in capacities] + [1])
+    return max([int(i) for i in capacities] + [0])
 
 
 """
