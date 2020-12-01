@@ -5,6 +5,8 @@ makes a list of lists where each inner list is a row of the file
 import csv
 import math
 import os
+import pandas as pd
+from pprint import pprint
 
 
 def init_routes():
@@ -60,21 +62,29 @@ def get_routes(routes, ny, sf):
         if prospective_routes[i][5] in sf and int(prospective_routes[i][7])<=1:
             good_routes.append([prospective_routes[i]])
         else:
-            added = False
             for j in range(len(routes)):
                 if routes[j][3]==prospective_routes[i][5] and routes[j][5] in sf and prospective_routes[i][7]=='0' and routes[j][7]=='0':
-                    good_routes.append([prospective_routes[i]])
-                    if not added:
-                        good_routes.append([routes[j]])
-                        added = True
+                    good_routes.append([routes[j]])
+                    break
     return good_routes
 
 
+def init_airlines():
+    with open('Resources/airlines.dat', 'r', newline='', encoding='utf-8') as file:
+        data=csv.reader(file,delimiter=',')
+        airlines = list(data)
+    return airlines
+
+
 # 3 and 5 are the indexes for source and destination
+"""
+Takes in a list of viable routes that represent edges of the graph, as well as 2 lists "ny" and "sf" which correspond
+to all the airports within those areas. plane_cap is a table corresponding to the capacity of each plane.
+"""
 def create_graph(good_routes, ny, sf, plane_cap):
     # Find unique vertices in the graph
-    unique_airports = sorted(list(set([r[0][5] for r in good_routes] + ny)))
-
+    unique_airports = sorted(list(set([r[0][5] for r in good_routes] + [r[0][3] for r in good_routes] + ny)))
+    unique_airports.insert(0, sf[0])
     # Create adjacency matrix
     matrix = [[0 for i in range(len(unique_airports)+1)] for i in range(len(unique_airports)+1)]
 
@@ -103,5 +113,8 @@ def create_graph(good_routes, ny, sf, plane_cap):
     for v in ny:
         matrix[src_index][v_index] = float('inf')
     return matrix, sink_index
+
+
+
 
 
